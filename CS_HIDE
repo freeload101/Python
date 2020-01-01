@@ -45,7 +45,7 @@ USAGE:
 }
 
 * Comment out the 'proxy setup' block to enable proxy if you want to use something like burp suite to see what is actualy getting sent to the server
-
+* this script also backups a complete aid details to a  broken JSON to a file called r_data.json 
 
 
 
@@ -257,4 +257,3 @@ time.sleep( 5 )
 
 r = requests.request("POST",'https://api.crowdstrike.com/devices/entities/devices-actions/v2?action_name=hide_host', headers = {'Authorization': 'Bearer ' + access_token,'Content-Type': 'application/json'},json={'ids': VAR_AIDS_DUPE},verify=VAR_SSL_FLAG)
 print(r.text)
- 
