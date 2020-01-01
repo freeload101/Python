@@ -26,12 +26,28 @@ import os
 
 # for checking for files existing
 import pathlib
-
-# for counting dupes  
+ 
 
 ############################################################ NOTES
 
 '''
+
+DESCRIPTION:
+This script will hide from the UI and API any duplicate devices_ids and only leave the most recent device_id or aid for each hostname
+
+USAGE: 
+
+* config.yml should look like this :
+
+{
+        "client_id":"####################################",
+        "client_secret":"####################################"
+}
+
+* Comment out the 'proxy setup' block to enable proxy if you want to use something like burp suite to see what is actualy getting sent to the server
+
+
+
 
 #[] is for indexing
 #() is for calling that function
@@ -241,8 +257,4 @@ time.sleep( 5 )
 
 r = requests.request("POST",'https://api.crowdstrike.com/devices/entities/devices-actions/v2?action_name=hide_host', headers = {'Authorization': 'Bearer ' + access_token,'Content-Type': 'application/json'},json={'ids': VAR_AIDS_DUPE},verify=VAR_SSL_FLAG)
 print(r.text)
-
-
-
  
-
