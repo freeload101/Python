@@ -20,68 +20,15 @@ import shutil
 
 # for skipping cert errors in proxy 
 import ssl
+# hiding warnings for ssl
+import urllib3
 
 # for setting OS env vars for proxy
 import os
 
 # for checking for files existing
 import pathlib
- 
 
-############################################################ NOTES
-
-'''
-
-DESCRIPTION:
-This script will hide from the UI and API any duplicate devices_ids and only leave the most recent device_id or aid for each hostname
-
-USAGE: 
-
-* config.yml should look like this :
-
-{
-        "client_id":"####################################",
-        "client_secret":"####################################"
-}
-
-* Comment out the 'proxy setup' block to enable proxy if you want to use something like burp suite to see what is actualy getting sent to the server
-* this script also backups a complete aid details to a  broken JSON to a file called r_data.json 
-
-
-
-#[] is for indexing
-#() is for calling that function
-# time.sleep( 5 )
-# Brackets ([and ]) delineate the start and stop of a JSON list. Lists require numeric indexes. –
-#time.sleep( 2 )
-
-# json_str = json.dumps(data, indent=4)
-#VAR_AIDS_TRY1 = {'hostname':(tok_dict['resources'][0]['hostname']),'device_id':(tok_dict['resources'][0]['device_id']) }
-# asyncio.create_task
-# 3.7 asyncio.run
-# asyncio.gather
-# async with ClientSession
-
-#default = ('python', 'programming', 'compsci')
-#keys = sys.argv[1:] if len(sys.argv) > 1 else default
-
-'''
-############################################################ CONFIG
-
-yaml.warnings({'YAMLLoadWarning': False})
-
-Loader=yaml.FullLoader
-with open("config.yml", 'r') as ymlfile:
-    cfg = yaml.load(ymlfile, Loader=yaml.FullLoader)
-#print(cfg['client_id'])
-
-VAR_CLIENT_ID=(cfg['client_id'])
-VAR_CLIENT_SECRET=(cfg['client_secret'])
-
-
-
-# CREATE DATA TIME VARIABLE
-datetime_var = time.strftime("__%d_%m_%y-%H-%M")
 
 
 ############################################################ FUNCTIONS
@@ -103,6 +50,49 @@ def FUNC_DEBUG():
     "type(VAR_AIDS):",type(VAR_AIDS),
     )
 
+def FUNC_AUTH():
+    
+    ################################################################################ AUTH
+    # get Oauth Access Bearer Token...
+    global VAR_SSL_FLAG
+    global VAR_CLIENT_SECRET
+    global VAR_CLIENT_ID
+    global access_token    
+    global VAR_AIDS_DUPE
+    os.environ["HTTP_PROXY"] = "http://127.0.0.1:8080"
+    os.environ["HTTPS_PROXY"] = "http://127.0.0.1:8080"
+    VAR_SSL_FLAG=False
+    # supress warnings for ssl
+    urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+    r = requests.post('https://api.crowdstrike.com/oauth2/token', data = {'client_id':VAR_CLIENT_ID,'client_secret':VAR_CLIENT_SECRET},verify=VAR_SSL_FLAG)
+    if r.status_code in [201]:
+        #print("DEBUG: Status 201 OK!")
+        tok_dict = json.loads(r.text)
+        global access_token
+        access_token = tok_dict["access_token"]
+        #print("DEBUG: Access Token is ",access_token)
+    else:
+        print(r.status_code)
+        print(r.url)
+        print(r.text)
+        print(r.content)
+        print("ERROR DID NOT GET 201 STATUS CODE") 
+
+
+def FUNC_UNHIDE():
+    VAR_AIDS_DUPE=sys.argv[2]
+    print("DEBUG: Unhiding",VAR_AIDS_DUPE)
+    r = requests.request("POST",'https://api.crowdstrike.com/devices/entities/devices-actions/v2?action_name=unhide_host', headers = {'Authorization': 'Bearer ' + access_token,'Content-Type': 'application/json'},json={'ids': [VAR_AIDS_DUPE]},verify=VAR_SSL_FLAG)
+    print(r.text)
+    sys.exit (1)
+
+def FUNC_HIDE1():
+    VAR_AIDS_DUPE=sys.argv[2]
+    print("DEBUG: Hiding ",VAR_AIDS_DUPE)
+    r = requests.request("POST",'https://api.crowdstrike.com/devices/entities/devices-actions/v2?action_name=hide_host', headers = {'Authorization': 'Bearer ' + access_token,'Content-Type': 'application/json'},json={'ids': [VAR_AIDS_DUPE]},verify=VAR_SSL_FLAG)
+    print(r.text)
+    sys.exit (1)
+
 def list_duplicates(seq):
   seen = set()
   seen_add = seen.add
@@ -113,35 +103,91 @@ def list_duplicates(seq):
 
 ################################################################################ INIT
 
+
+
+
+if len (sys.argv) <= 1:
+    print("""
+Usage: python CS_HIDE  -h -t -s -p
+
+Normal options:
+    
+    -h search for dupilcate aids and hide them in the UI and API
+    -t search for dupilcate aids and only show what aids would be hidden
+    -u unhide a single aid
+    -s hide a single aid
+    -p enable proxy support to 127.0.0.1:8080  ( -p SWITCH MUST GO AT THE END )
+
+Config:
+
+    config.yml should look like this:
+    {
+            "client_id":"####################################",
+            "client_secret":"####################################"
+    }
+
+    """)
+    sys.exit (1)
+
+for x in sys.argv:
+    if x == '-p':
+        global access_token
+        global VAR_HIDE
+        global VAR_SSL_FLAG
+        global VAR_CLIENT_SECRET
+        global VAR_CLIENT_ID
+        global VAR_AIDS_DUPE
+        print("DEBUG: Setting Proxy to 127.0.0.1:8080")
+        os.environ["HTTP_PROXY"] = "http://127.0.0.1:8080"
+        os.environ["HTTPS_PROXY"] = "http://127.0.0.1:8080"
+        VAR_SSL_FLAG=False
+        # supress warnings for ssl
+        urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+    if x == '-h':
+        VAR_HIDE="True"
+    if x == '-t':
+        VAR_HIDE="False"
+    if x == '-u':
+        VAR_HIDE="unhide"
+    if x == '-s':
+        VAR_HIDE="hide1"
+
+
+
+
+############################################################ CONFIG
+
+yaml.warnings({'YAMLLoadWarning': False})
+
+Loader=yaml.FullLoader
+with open("config.yml", 'r') as ymlfile:
+    cfg = yaml.load(ymlfile, Loader=yaml.FullLoader)
+
+VAR_CLIENT_ID=(cfg['client_id'])
+VAR_CLIENT_SECRET=(cfg['client_secret'])
+
+
+
+# CREATE DATA TIME VARIABLE
+datetime_var = time.strftime("__%d_%m_%y-%H-%M")
+
 # backup JSON file 
 FUNC_BACKUP()
-
 
 # verify ssl flag set to True so you dont get warnings
 VAR_SSL_FLAG=True
 
-# proxy setup
-#os.environ["HTTP_PROXY"] = "http://127.0.0.1:8080"
-# os.environ["HTTPS_PROXY"] = "http://127.0.0.1:8080"
-# VAR_SSL_FLAG=False
+
+################################################################################ MAIN 
+FUNC_BACKUP()
+FUNC_AUTH()
+
+if VAR_HIDE == "unhide":
+    FUNC_UNHIDE()
+if VAR_HIDE == "hide1":
+    FUNC_HIDE1()
 
 
- 
-
-################################################################################ AUTH
-# get Oauth Access Bearer Token...
-r = requests.post('https://api.crowdstrike.com/oauth2/token', data = {'client_id':VAR_CLIENT_ID,'client_secret':VAR_CLIENT_SECRET},verify=VAR_SSL_FLAG)
-if r.status_code in [201]:
-    #print("DEBUG: Status 201 OK!")
-    tok_dict = json.loads(r.text)
-    access_token = tok_dict["access_token"]
-    print("DEBUG: Access Token is "+access_token)
-else:
-    print(r.status_code)
-    print(r.url)
-    print(r.text)
-    print(r.content)
-    print("ERROR DID NOT GET 201 STATUS CODE") 
 
 
 ################################################################################ GET TOTAL COUNT OF AIDS
@@ -170,7 +216,7 @@ while count < VAR_AID_RUNS_NEEDED:
     VAR_AIDS = (tok_dict['resources'])
     VAR_OFFSET_CURRENT += 5000
     count += 1
-    # DEBUG set count to += 4
+    # DEBUG set count to += 4 normal is +=1 
     for i in VAR_AIDS:
         VAR_AIDS_ARRAY.append(i)
 
@@ -227,33 +273,34 @@ for i in range (len(VAR_AIDS_DETAIL_LIST)):
 VAR_AIDS_DETAIL_LIST_HOSTNAMES_DUPES=(list_duplicates(VAR_AIDS_DETAIL_LIST_HOSTNAMES))
 
 
-print("DEBUG: Processing",VAR_AIDS_DETAIL_LIST_HOSTNAMES_DUPES,"dupes")
+print("DEBUG: Processing hosts with dupes ",VAR_AIDS_DETAIL_LIST_HOSTNAMES_DUPES,"dupes")
 
 VAR_AIDS_DUPE=[]
 
 for i in VAR_AIDS_DETAIL_LIST_HOSTNAMES_DUPES:
     count = 0
     for j in VAR_AIDS_DETAIL_LIST:
-        print("DEBUG: Not storing ",i,j)
         if i in j:
             if count == 0:
                 count += 1
-                print("DEBUG: Not storing ",i,j)
+                #print("DEBUG: Not storing ",i,j)
             else:
-                print("DEBUG: Storing ",i,j)
+                #print("DEBUG: Storing ",i,j)
                 VAR_AIDS_DUPE.append(j[1])
 
+if VAR_HIDE == "True":
+    print("DEBUG: Hiding ",len(VAR_AIDS_DUPE),"Dupes")
+    print("DEBUG: Showing dupes only")
+    print(VAR_AIDS_DUPE)
 
-print("DEBUG: Hiding ",len(VAR_AIDS_DUPE),"Dupes")
+    print("DEBUG: Sleeping for 5 seconds break now if you don't want to hide the ids")
+    time.sleep( 5 )
+    r = requests.request("POST",'https://api.crowdstrike.com/devices/entities/devices-actions/v2?action_name=hide_host', headers = {'Authorization': 'Bearer ' + access_token,'Content-Type': 'application/json'},json={'ids': VAR_AIDS_DUPE},verify=VAR_SSL_FLAG)
+    print(r.text)
+if VAR_HIDE == "False":
+    print("DEBUG: Showing dupes only")
+    for i in VAR_AIDS_DUPE:
+        print(i)
 
-print(VAR_AIDS_DUPE)
- 
-print("DEBUG: Sleeping for 5 seconds break now if you don't want to hide the ids")
-time.sleep( 5 )
 
-
-# WIP take the VAR_AID_TO_HIDE list and load it into example ( possible we can hide upto 2-5000 at a time .. not sure the limit ..):
-# /devices/entities/devices-actions/v3?action_name=hide_host  -d '{"filter":"device_id:'################'"}'
-
-r = requests.request("POST",'https://api.crowdstrike.com/devices/entities/devices-actions/v2?action_name=hide_host', headers = {'Authorization': 'Bearer ' + access_token,'Content-Type': 'application/json'},json={'ids': VAR_AIDS_DUPE},verify=VAR_SSL_FLAG)
-print(r.text)
+sys.exit (1)
