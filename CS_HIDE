@@ -29,6 +29,12 @@ import os
 # for checking for files existing
 import pathlib
 
+# This is set to False when we enable proxy support later
+VAR_SSL_FLAG=True
+
+
+# regex
+import re
 
 
 ############################################################ FUNCTIONS
@@ -41,29 +47,9 @@ def FUNC_BACKUP():
         print("DEBUG: Backing up r_data.json to: " "r_data.json"+str(datetime_var))
         shutil.move("r_data.json", "r_data.json"+str(datetime_var))
     
-def FUNC_DEBUG():
-    print("DEBUG:", 
-    "VAR_AID_RUNS_NEEDED:",VAR_AID_RUNS_NEEDED,
-    "VAR_OFFSET_CURRENT:",VAR_OFFSET_CURRENT,
-    "len(VAR_AIDS_ARRAY):",len(VAR_AIDS_ARRAY),
-    "len(VAR_AIDS):",len(VAR_AIDS),
-    "type(VAR_AIDS):",type(VAR_AIDS),
-    )
-
 def FUNC_AUTH():
     
     ################################################################################ AUTH
-    # get Oauth Access Bearer Token...
-    global VAR_SSL_FLAG
-    global VAR_CLIENT_SECRET
-    global VAR_CLIENT_ID
-    global access_token    
-    global VAR_AIDS_DUPE
-    os.environ["HTTP_PROXY"] = "http://127.0.0.1:8080"
-    os.environ["HTTPS_PROXY"] = "http://127.0.0.1:8080"
-    VAR_SSL_FLAG=False
-    # supress warnings for ssl
-    urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
     r = requests.post('https://api.crowdstrike.com/oauth2/token', data = {'client_id':VAR_CLIENT_ID,'client_secret':VAR_CLIENT_SECRET},verify=VAR_SSL_FLAG)
     if r.status_code in [201]:
         #print("DEBUG: Status 201 OK!")
@@ -94,12 +80,12 @@ def FUNC_HIDE1():
     sys.exit (1)
 
 def list_duplicates(seq):
-  seen = set()
-  seen_add = seen.add
-  # adds all elements it doesn't know yet to seen and all other to seen_twice
-  seen_twice = set( x for x in seq if x in seen or seen_add(x) )
-  # turn the set into a list (as requested)
-  return list( seen_twice )
+    seen = set()
+    seen_add = seen.add
+    # adds all elements it doesn't know yet to seen and all other to seen_twice
+    seen_twice = set( x for x in seq if x in seen or seen_add(x) )
+    # turn the set into a list (as requested)
+    return list( seen_twice )
 
 ################################################################################ INIT
 
@@ -112,11 +98,13 @@ Usage: python CS_HIDE  -h -t -s -p
 
 Normal options:
     
-    -h search for dupilcate aids and hide them in the UI and API
-    -t search for dupilcate aids and only show what aids would be hidden
+    -h search for dupilcate aids or aids with NULL values and hide them in the UI and API
+    -t search for dupilcate aids or aids with NULL values and only show what aids would be hidden
     -u unhide a single aid
     -s hide a single aid
     -p enable proxy support to 127.0.0.1:8080  ( -p SWITCH MUST GO AT THE END )
+
+Output: All host data is stored/backedup in a malformed JSON file r_data.json
 
 Config:
 
@@ -131,12 +119,8 @@ Config:
 
 for x in sys.argv:
     if x == '-p':
-        global access_token
-        global VAR_HIDE
-        global VAR_SSL_FLAG
-        global VAR_CLIENT_SECRET
-        global VAR_CLIENT_ID
-        global VAR_AIDS_DUPE
+        global HTTP_PROXY
+        global HTTPS_PROXY
         print("DEBUG: Setting Proxy to 127.0.0.1:8080")
         os.environ["HTTP_PROXY"] = "http://127.0.0.1:8080"
         os.environ["HTTPS_PROXY"] = "http://127.0.0.1:8080"
@@ -163,19 +147,16 @@ Loader=yaml.FullLoader
 with open("config.yml", 'r') as ymlfile:
     cfg = yaml.load(ymlfile, Loader=yaml.FullLoader)
 
+
 VAR_CLIENT_ID=(cfg['client_id'])
 VAR_CLIENT_SECRET=(cfg['client_secret'])
-
-
-
+ 
 # CREATE DATA TIME VARIABLE
 datetime_var = time.strftime("__%d_%m_%y-%H-%M")
 
 # backup JSON file 
 FUNC_BACKUP()
 
-# verify ssl flag set to True so you dont get warnings
-VAR_SSL_FLAG=True
 
 
 ################################################################################ MAIN 
@@ -245,21 +226,42 @@ for i in VAR_CHUNKS_ALL_LIST:
     r = requests.get("https://api.crowdstrike.com/devices/entities/devices/v1?ids="+str(i), headers = {'Authorization': 'Bearer ' + access_token},verify=VAR_SSL_FLAG)
     r_data = json.loads(r.text)
     print("DEBUG: Fetching",len(VAR_AIDS_DETAIL_LIST),"ids of",len(VAR_AIDS_ARRAY))
-    
+
     # output to broken json file
     with open('r_data.json', 'a+') as outfile1:
             json.dump(r_data, outfile1, indent=4)
-
+    
     for i in range (len(r_data['resources'])):
         # we had at least one AID without a hostname ... WTF...
         #VAR_CURRENT_HOSTNAME=(r_data.get['resources'])
         ################################################  python "KeyError:" catch #### fix aid missing hostenams using .get
-        VAR_CURRENT_HOSTNAME=(r_data['resources'][i]['hostname'])
-        VAR_CURRENT_DEVICE_ID=(r_data['resources'][i]['device_id'])
-        VAR_CURRENT_LAST_SEEN=(r_data['resources'][i]['last_seen'])
+ 
+        try:
+            VAR_CURRENT_HOSTNAME=(r_data['resources'][i]['hostname'])
+        except KeyError:
+            print("DEBUG: Missing HOSTNAME for",(r_data['resources'][i]))
+            VAR_CURRENT_HOSTNAME="NULL"
+
+        try:
+            VAR_CURRENT_DEVICE_ID=(r_data['resources'][i]['device_id'])
+        except KeyError:
+            print("DEBUG: Missing DEVICE_ID for",(r_data['resources'][i]))
+            VAR_CURRENT_DEVICE_ID="NULL"
+
+        try:
+            VAR_CURRENT_LAST_SEEN=(r_data['resources'][i]['last_seen'])
+        except KeyError:
+            print("DEBUG: Missing LAST_SEEN for",(r_data['resources'][i]))
+            VAR_CURRENT_LAST_SEEN="NULL"
+        try:
+            VAR_CURRENT_MAC_ADDRESS=(r_data['resources'][i]['mac_address'])
+        except KeyError:
+            print("DEBUG: Missing MAC_ADDRESS for",(r_data['resources'][i]['device_id']))
+            VAR_CURRENT_MAC_ADDRESS="NULL"            
+ 
 
         #print(VAR_CURRENT_HOSTNAME,VAR_CURRENT_DEVICE_ID,VAR_CURRENT_LAST_SEEN)
-        VAR_AIDS_DETAIL_LIST.append([VAR_CURRENT_HOSTNAME,VAR_CURRENT_DEVICE_ID,VAR_CURRENT_LAST_SEEN])
+        VAR_AIDS_DETAIL_LIST.append([VAR_CURRENT_HOSTNAME,VAR_CURRENT_DEVICE_ID,VAR_CURRENT_LAST_SEEN,VAR_CURRENT_MAC_ADDRESS])
 
 
 ######################################################### GET DUPE HOSTNAMES 
@@ -273,10 +275,14 @@ for i in range (len(VAR_AIDS_DETAIL_LIST)):
 VAR_AIDS_DETAIL_LIST_HOSTNAMES_DUPES=(list_duplicates(VAR_AIDS_DETAIL_LIST_HOSTNAMES))
 
 
-print("DEBUG: Processing hosts with dupes ",VAR_AIDS_DETAIL_LIST_HOSTNAMES_DUPES,"dupes")
+print("DEBUG: hosts with dupes ",VAR_AIDS_DETAIL_LIST_HOSTNAMES_DUPES)
+
+
+# rest of this this needs to be cleaned up ... doing a lot of dupe stuff in here
 
 VAR_AIDS_DUPE=[]
-
+VAR_AIDS_NULL=[]
+VAR_AIDS_DUPE_ALL=[]
 for i in VAR_AIDS_DETAIL_LIST_HOSTNAMES_DUPES:
     count = 0
     for j in VAR_AIDS_DETAIL_LIST:
@@ -284,23 +290,48 @@ for i in VAR_AIDS_DETAIL_LIST_HOSTNAMES_DUPES:
             if count == 0:
                 count += 1
                 #print("DEBUG: Not storing ",i,j)
+                VAR_AIDS_DUPE_ALL.append(j)
             else:
                 #print("DEBUG: Storing ",i,j)
-                VAR_AIDS_DUPE.append(j[1])
+                VAR_AIDS_DUPE.append(j)
+                VAR_AIDS_DUPE_ALL.append(j)
+
+
+
+if VAR_HIDE == "False":
+    print("DEBUG: Showing dupes only\n")
+    print("DEBUG: Hostname,Aid,Last Seen,Mac Address")
+    for i in VAR_AIDS_DUPE_ALL:
+        print(i)
+    for k in VAR_AIDS_DETAIL_LIST:
+        if 'NULL' in k:
+            #print(k)
+            VAR_AIDS_NULL.append(k[1])
+    if len(VAR_AIDS_NULL) == 0:
+        print("No aids with NULL entries found")
+    else:
+        print("DEBUG: Showing",len(VAR_AIDS_NULL),"aids with NULL entries")
+        print(VAR_AIDS_NULL)
+     
+
 
 if VAR_HIDE == "True":
-    print("DEBUG: Hiding ",len(VAR_AIDS_DUPE),"Dupes")
-    print("DEBUG: Showing dupes only")
-    print(VAR_AIDS_DUPE)
-
-    print("DEBUG: Sleeping for 5 seconds break now if you don't want to hide the ids")
-    time.sleep( 5 )
-    r = requests.request("POST",'https://api.crowdstrike.com/devices/entities/devices-actions/v2?action_name=hide_host', headers = {'Authorization': 'Bearer ' + access_token,'Content-Type': 'application/json'},json={'ids': VAR_AIDS_DUPE},verify=VAR_SSL_FLAG)
-    print(r.text)
-if VAR_HIDE == "False":
-    print("DEBUG: Showing dupes only")
-    for i in VAR_AIDS_DUPE:
+    print("DEBUG: Hostname,Aid,Last Seen,Mac Address")
+    for i in VAR_AIDS_DUPE_ALL:
         print(i)
+    for k in VAR_AIDS_DETAIL_LIST:
+        if 'NULL' in k:
+            #print(k)
+            VAR_AIDS_NULL.append(k[1])
+    if len(VAR_AIDS_NULL) == 0:
+        print("No aids with NULL entries found")
+    else:
+        print("DEBUG: Hiding",len(VAR_AIDS_NULL),"aids with NULL entries")
+        print(VAR_AIDS_NULL)
+        input("Press Enter to continue...")
+        r = requests.request("POST",'https://api.crowdstrike.com/devices/entities/devices-actions/v2?action_name=hide_host', headers = {'Authorization': 'Bearer ' + access_token,'Content-Type': 'application/json'},json={'ids': VAR_AIDS_NULL},verify=VAR_SSL_FLAG)
+        print(r.text)
 
 
 sys.exit (1)
+
