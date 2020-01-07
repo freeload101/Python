@@ -31,8 +31,11 @@ Creates complete broken JSON output of all aid info.
 > config.yml should look like this:
 >
 >{
+>
 >"client_id":"####################################",
+>
 >"client_secret":"####################################"
+>
 >}
 
 ![enter image description here](https://github.com/freeload101/Python/blob/master/CS_HIDE.jpg?raw=true)
