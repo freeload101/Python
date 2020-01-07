@@ -36,6 +36,12 @@ VAR_SSL_FLAG=True
 # regex
 import re
 
+# to check dates on last seen key
+import datetime
+import dateutil.parser
+import pytz
+
+
 
 ############################################################ FUNCTIONS
 
@@ -235,7 +241,7 @@ for i in VAR_CHUNKS_ALL_LIST:
         # we had at least one AID without a hostname ... WTF...
         #VAR_CURRENT_HOSTNAME=(r_data.get['resources'])
         ################################################  python "KeyError:" catch #### fix aid missing hostenams using .get
- 
+
         try:
             VAR_CURRENT_HOSTNAME=(r_data['resources'][i]['hostname'])
         except KeyError:
@@ -248,21 +254,36 @@ for i in VAR_CHUNKS_ALL_LIST:
             print("DEBUG: Missing DEVICE_ID for",(r_data['resources'][i]))
             VAR_CURRENT_DEVICE_ID="NULL"
 
+
         try:
-            VAR_CURRENT_LAST_SEEN=(r_data['resources'][i]['last_seen'])
+            VAR_CURRENT_LOCAL_IP=(r_data['resources'][i]['local_ip'])
         except KeyError:
-            print("DEBUG: Missing LAST_SEEN for",(r_data['resources'][i]))
-            VAR_CURRENT_LAST_SEEN="NULL"
+            print("DEBUG: Missing LOCAL_IP for",(r_data['resources'][i]))
+            VAR_CURRENT_LOCAL_IP="NULL"
+
+
+        try:
+            VAR_CURRENT_SYSTEM_PRODUUCT_NAME=(r_data['resources'][i]['system_product_name'])
+        except KeyError:
+            print("DEBUG: Missing SYSTEM_PRODUUCT_NAME for",(r_data['resources'][i]))
+            VAR_CURRENT_SYSTEM_PRODUUCT_NAME="NULL"
+
         try:
             VAR_CURRENT_MAC_ADDRESS=(r_data['resources'][i]['mac_address'])
         except KeyError:
             print("DEBUG: Missing MAC_ADDRESS for",(r_data['resources'][i]['device_id']))
             VAR_CURRENT_MAC_ADDRESS="NULL"            
+
+        try:
+            VAR_CURRENT_LAST_SEEN=(r_data['resources'][i]['last_seen'])
+        except KeyError:
+            print("DEBUG: Missing LAST_SEEN for",(r_data['resources'][i]))
+            VAR_CURRENT_LAST_SEEN="NULL"
  
 
         #print(VAR_CURRENT_HOSTNAME,VAR_CURRENT_DEVICE_ID,VAR_CURRENT_LAST_SEEN)
-        VAR_AIDS_DETAIL_LIST.append([VAR_CURRENT_HOSTNAME,VAR_CURRENT_DEVICE_ID,VAR_CURRENT_LAST_SEEN,VAR_CURRENT_MAC_ADDRESS])
-
+        VAR_AIDS_DETAIL_LIST.append([VAR_CURRENT_HOSTNAME,VAR_CURRENT_DEVICE_ID,VAR_CURRENT_LOCAL_IP,VAR_CURRENT_SYSTEM_PRODUUCT_NAME,VAR_CURRENT_LAST_SEEN,VAR_CURRENT_MAC_ADDRESS])
+ 
 
 ######################################################### GET DUPE HOSTNAMES 
 VAR_AIDS_DETAIL_LIST_HOSTNAMES=[]
@@ -275,7 +296,7 @@ for i in range (len(VAR_AIDS_DETAIL_LIST)):
 VAR_AIDS_DETAIL_LIST_HOSTNAMES_DUPES=(list_duplicates(VAR_AIDS_DETAIL_LIST_HOSTNAMES))
 
 
-print("DEBUG: hosts with dupes ",VAR_AIDS_DETAIL_LIST_HOSTNAMES_DUPES)
+#print("DEBUG: hosts with dupes ",VAR_AIDS_DETAIL_LIST_HOSTNAMES_DUPES)
 
 
 # rest of this this needs to be cleaned up ... doing a lot of dupe stuff in here
@@ -292,9 +313,18 @@ for i in VAR_AIDS_DETAIL_LIST_HOSTNAMES_DUPES:
                 #print("DEBUG: Not storing ",i,j)
                 VAR_AIDS_DUPE_ALL.append(j)
             else:
-                #print("DEBUG: Storing ",i,j)
-                VAR_AIDS_DUPE.append(j)
-                VAR_AIDS_DUPE_ALL.append(j)
+                VAR_LASTSEEN=j[4]
+                insertion_date = dateutil.parser.parse(VAR_LASTSEEN)
+                diffretiation = pytz.utc.localize(datetime.datetime.utcnow()) - insertion_date
+                if diffretiation.days>3:
+                    #print("DEBUG: Storing ",i,j)
+                    VAR_AIDS_DUPE.append(j[1])
+                    VAR_AIDS_DUPE_ALL.append(j)
+
+                #else:
+                    #print("DEBUG: Not storing due to recent last_seen value",i,j)
+
+
 
 
 
@@ -305,13 +335,14 @@ if VAR_HIDE == "False":
         print(i)
     for k in VAR_AIDS_DETAIL_LIST:
         if 'NULL' in k:
-            #print(k)
             VAR_AIDS_NULL.append(k[1])
-    if len(VAR_AIDS_NULL) == 0:
-        print("No aids with NULL entries found")
+    if len(VAR_AIDS_NULL) == 0 or len(VAR_AIDS_DUPE) == 0:
+        print("No aids with NULL or old duplicate host entries found")
     else:
         print("DEBUG: Showing",len(VAR_AIDS_NULL),"aids with NULL entries")
         print(VAR_AIDS_NULL)
+        print("DEBUG: Showing",len(VAR_AIDS_DUPE),"dupe aids with old last_seen entries")
+        print(VAR_AIDS_DUPE)
      
 
 
@@ -321,18 +352,20 @@ if VAR_HIDE == "True":
         print(i)
     for k in VAR_AIDS_DETAIL_LIST:
         if 'NULL' in k:
-            #print(k)
             VAR_AIDS_NULL.append(k[1])
-    if len(VAR_AIDS_NULL) == 0:
-        print("No aids with NULL entries found")
+    if len(VAR_AIDS_NULL) == 0 and len(VAR_AIDS_DUPE) == 0:
+        print("No aids with NULL or old duplicate host entries found")
     else:
         print("DEBUG: Hiding",len(VAR_AIDS_NULL),"aids with NULL entries")
         print(VAR_AIDS_NULL)
+        print("DEBUG: Hiding",len(VAR_AIDS_DUPE),"dupe aids with old last_seen entries")
+        print(VAR_AIDS_DUPE)
+
         input("Press Enter to continue...")
         print("Please wait may take some time")
         r = requests.request("POST",'https://api.crowdstrike.com/devices/entities/devices-actions/v2?action_name=hide_host', headers = {'Authorization': 'Bearer ' + access_token,'Content-Type': 'application/json'},json={'ids': VAR_AIDS_NULL},verify=VAR_SSL_FLAG)
         print(r.text)
-
+        r = requests.request("POST",'https://api.crowdstrike.com/devices/entities/devices-actions/v2?action_name=hide_host', headers = {'Authorization': 'Bearer ' + access_token,'Content-Type': 'application/json'},json={'ids': VAR_AIDS_DUPE},verify=VAR_SSL_FLAG)
+        print(r.text)
 
 sys.exit (1)
-
