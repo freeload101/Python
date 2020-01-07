@@ -12,17 +12,22 @@ Creates complete broken JSON output of all aid info.
 > 
 > Normal options:
 > 
+>
 >-h search for dupilcate aids or aids with NULL values and hide them in the UI and API
+>
 >-t search for dupilcate aids or aids with NULL values and only show what aids would be hidden
+>
 >-u unhide a single aid
+>
 >-s hide a single aid
+>
 >-p enable proxy support to 127.0.0.1:8080 ( -p SWITCH MUST GO AT THE END )
 >
 >Output: 
 >
 >All host data is stored/backedup in a malformed JSON file r_data.json
 >
- >Config:
+>Config:
 > config.yml should look like this:
 >
 >{
