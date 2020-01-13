@@ -120,6 +120,10 @@ Config:
             "client_secret":"####################################"
     }
 
+
+Version:
+    *1.0a: Fixed 'Only select up to 100 hosts at a time'
+
     """)
     sys.exit (1)
 
@@ -361,11 +365,18 @@ if VAR_HIDE == "True":
         print("DEBUG: Hiding",len(VAR_AIDS_DUPE),"dupe aids with old last_seen entries")
         print(VAR_AIDS_DUPE)
 
+        # split up VAR_AIDS_NULL and VAR_AIDS_DUPE into 100 size chunks can only do 100 at a time
+        VAR_AIDS_DUPE_NULL=[]
+        VAR_AIDS_DUPE_NULL=VAR_AIDS_NULL
+        VAR_AIDS_DUPE_NULL.extend(VAR_AIDS_DUPE)
+        
+        VAR_AIDS_DUPE_NULL_SPLIT = [VAR_AIDS_DUPE_NULL[i:i + 100] for i in range(0,len(VAR_AIDS_DUPE_NULL), 100)]
+        print("DEBUG: Splitting "+str(len(VAR_AIDS_DUPE_NULL_SPLIT))+" AIDS into 500 count ")
         input("Press Enter to continue...")
         print("Please wait may take some time")
-        r = requests.request("POST",'https://api.crowdstrike.com/devices/entities/devices-actions/v2?action_name=hide_host', headers = {'Authorization': 'Bearer ' + access_token,'Content-Type': 'application/json'},json={'ids': VAR_AIDS_NULL},verify=VAR_SSL_FLAG)
-        print(r.text)
-        r = requests.request("POST",'https://api.crowdstrike.com/devices/entities/devices-actions/v2?action_name=hide_host', headers = {'Authorization': 'Bearer ' + access_token,'Content-Type': 'application/json'},json={'ids': VAR_AIDS_DUPE},verify=VAR_SSL_FLAG)
-        print(r.text)
-
+        for i in VAR_AIDS_DUPE_NULL_SPLIT:
+            #print("DEBUG:",i)
+            r = requests.request("POST",'https://api.crowdstrike.com/devices/entities/devices-actions/v2?action_name=hide_host', headers = {'Authorization': 'Bearer ' + access_token,'Content-Type': 'application/json'},json={'ids': i},verify=VAR_SSL_FLAG)
+            print(r.text)
+                         
 sys.exit (1)
