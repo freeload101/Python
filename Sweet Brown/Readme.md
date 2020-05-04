@@ -1,6 +1,6 @@
 WIP
 
-Daily URL dijest script for all chat protocals:
+Daily URL digest script for all chat protocals:
 
 Disrcord: 90 % ( not working on server side with 3.5 
 ``` python3.5 discord.py
