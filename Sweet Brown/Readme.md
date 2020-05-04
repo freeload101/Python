@@ -26,6 +26,10 @@ Slack: 0%
 Twitter: 0%
 
 https://www.reddit.com/r/blueteamsec/ : 0%
+
 https://www.reddit.com/r/netsec/: 0%
+
 https://www.reddit.com/r/crowdstrike/: 0%
+
 https://www.reddit.com/r/redteamsec/ 0%
+
