@@ -1,4 +1,5 @@
 
+* support reddit ripping of sub reddits   
 * ingest URLs clicked my mail gateway
 * click all the things fill all the forms
 * diff valid test credentials compared to fake ( if not different then phishing )
