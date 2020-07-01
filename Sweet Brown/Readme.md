@@ -2,6 +2,10 @@ WIP
 
 Daily URL digest script for all chat protocals:
 
+Requirements:
+* strip out all youtube links ( some talks etc will be lost )
+* strip out all memes (gifs etc)
+
 Disrcord: 90 % ( not working on server side with 3.5 
 ``` python3.5 discord.py
 Traceback (most recent call last):
