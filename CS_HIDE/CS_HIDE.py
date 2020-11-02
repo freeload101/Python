@@ -78,6 +78,17 @@ def FUNC_UNHIDE():
     print(r.text)
     sys.exit (1)
 
+
+def FUNC_SET_STATUS():
+    VAR_AIDS_DUPE=sys.argv[2]
+    VAR_AIDS_USER=sys.argv[3]
+    VAR_AIDS_STATUS=sys.argv[4]
+    print("DEBUG: Setting status for ",VAR_AIDS_DUPE)
+    r = requests.request("PATCH",'https://api.crowdstrike.com/detects/entities/detects/v2', headers = {'Authorization': 'Bearer ' + access_token,'Content-Type': 'application/json'},json={'ids': [VAR_AIDS_DUPE],"status":VAR_AIDS_STATUS,"assigned_to_uuid":VAR_AIDS_USER},verify=VAR_SSL_FLAG)
+    print(r.text)
+    
+    sys.exit (1)
+
 def FUNC_HIDE1():
     VAR_AIDS_DUPE=sys.argv[2]
     print("DEBUG: Hiding ",VAR_AIDS_DUPE)
@@ -100,7 +111,7 @@ def list_duplicates(seq):
 
 if len (sys.argv) <= 1:
     print("""
-Usage: python CS_HIDE  -h -t -s -p
+Usage: python CS_HIDE  -h -t -s -p -status
 
 Normal options:
     
@@ -145,6 +156,10 @@ for x in sys.argv:
         VAR_HIDE="unhide"
     if x == '-s':
         VAR_HIDE="hide1"
+    if x == '-status':
+        VAR_HIDE="hide2"
+	
+	
 
 
 
@@ -177,7 +192,8 @@ if VAR_HIDE == "unhide":
     FUNC_UNHIDE()
 if VAR_HIDE == "hide1":
     FUNC_HIDE1()
-
+if VAR_HIDE == "hide2":
+    FUNC_SET_STATUS()
 
 
 
@@ -249,7 +265,7 @@ for i in VAR_CHUNKS_ALL_LIST:
         try:
             VAR_CURRENT_HOSTNAME=(r_data['resources'][i]['hostname'])
         except KeyError:
-            print("DEBUG: Missing HOSTNAME for",(r_data['resources'][i]))
+            print("DEBUG: Missing HOSTNAME for",(r_data['resources'][i]['device_id']))
             VAR_CURRENT_HOSTNAME="NULL"
 
         try:
@@ -262,14 +278,14 @@ for i in VAR_CHUNKS_ALL_LIST:
         try:
             VAR_CURRENT_LOCAL_IP=(r_data['resources'][i]['local_ip'])
         except KeyError:
-            print("DEBUG: Missing LOCAL_IP for",(r_data['resources'][i]))
+            print("DEBUG: Missing LOCAL_IP for",(r_data['resources'][i]['device_id']))
             VAR_CURRENT_LOCAL_IP="NULL"
 
 
         try:
             VAR_CURRENT_SYSTEM_PRODUUCT_NAME=(r_data['resources'][i]['system_product_name'])
         except KeyError:
-            print("DEBUG: Missing SYSTEM_PRODUUCT_NAME for",(r_data['resources'][i]))
+            print("DEBUG: Missing SYSTEM_PRODUUCT_NAME for",(r_data['resources'][i]['device_id']))
             VAR_CURRENT_SYSTEM_PRODUUCT_NAME="NULL"
 
         try:
@@ -281,7 +297,7 @@ for i in VAR_CHUNKS_ALL_LIST:
         try:
             VAR_CURRENT_LAST_SEEN=(r_data['resources'][i]['last_seen'])
         except KeyError:
-            print("DEBUG: Missing LAST_SEEN for",(r_data['resources'][i]))
+            print("DEBUG: Missing LAST_SEEN for",(r_data['resources'][i]['device_id']))
             VAR_CURRENT_LAST_SEEN="NULL"
  
 
@@ -371,7 +387,7 @@ if VAR_HIDE == "True":
         VAR_AIDS_DUPE_NULL.extend(VAR_AIDS_DUPE)
         
         VAR_AIDS_DUPE_NULL_SPLIT = [VAR_AIDS_DUPE_NULL[i:i + 100] for i in range(0,len(VAR_AIDS_DUPE_NULL), 100)]
-        print("DEBUG: Splitting "+str(len(VAR_AIDS_DUPE_NULL_SPLIT))+" AIDS into 500 count ")
+        print("DEBUG: Splitting "+str(len(VAR_AIDS_DUPE_NULL_SPLIT))+" AIDS into 100 count ")
         input("Press Enter to continue...")
         print("Please wait may take some time")
         for i in VAR_AIDS_DUPE_NULL_SPLIT:
@@ -380,3 +396,4 @@ if VAR_HIDE == "True":
             print(r.text)
                          
 sys.exit (1)
+
