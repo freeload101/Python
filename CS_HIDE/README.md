@@ -44,3 +44,14 @@ Creates complete broken JSON output of all aid info.
 
 ![enter image description here](https://github.com/freeload101/Python/blob/master/CS_HIDE/CS_HIDE.jpg?raw=true)
 
+
+> -status help
+>To get your idt:#:# use the url of a detection example :
+
+>https://falcon.crowdstrike.com/activity/detections/detail/6346acb9431b4f5959f7f36ac1742965/197568642580
+
+>to get the user ID use Chrome F12 then click network tab and then the response tab for a request that includes the account ID you searched for:
+
+![enter image description here](https://github.com/freeload101/Python/blob/master/CS_HIDE/CS_USER.jpg?raw=true)
+
+
