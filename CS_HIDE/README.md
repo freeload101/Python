@@ -5,6 +5,8 @@
 
 ## CS_HIDE.py
 
+## Also check out CS_BADGER https://github.com/freeload101/SCRIPTS/tree/master/Bash/CS_BADGER 
+
 This script will find duplicate host names and remove any old or null duplicate aids or 'device_ids'
 Creates complete broken JSON output of all aid info.
 
