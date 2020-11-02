@@ -23,6 +23,8 @@ Creates complete broken JSON output of all aid info.
 >
 >-p enable proxy support to 127.0.0.1:8080 ( -p SWITCH MUST GO AT THE END )
 >
+>-status Detect_ID User_ID Status
+> Example : ( -status ldt:6346acb9431b4f5959f7f36ac1742965:197568642580 "3fbed8da-7445-4278-afbc-085868267968" ignored )
 >Output: 
 >
 >All host data is stored/backedup in a malformed JSON file r_data.json
