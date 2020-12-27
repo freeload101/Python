@@ -6,7 +6,7 @@ Requirements:
 * strip out all youtube links ( some talks etc will be lost )
 * strip out all memes (gifs etc)
 * matrix bridge for IRC / mumble 
-* mastadon ?
+* mastodon social ?
 
 Disrcord: 90 % ( not working on server side with 3.5 
 ``` python3.5 discord.py
