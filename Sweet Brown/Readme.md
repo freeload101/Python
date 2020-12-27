@@ -5,6 +5,8 @@ Daily URL digest script for all chat protocals:
 Requirements:
 * strip out all youtube links ( some talks etc will be lost )
 * strip out all memes (gifs etc)
+* matrix bridge for IRC / mumble 
+* mastadon ?
 
 Disrcord: 90 % ( not working on server side with 3.5 
 ``` python3.5 discord.py
@@ -36,4 +38,6 @@ https://www.reddit.com/r/netsec/: 0%
 https://www.reddit.com/r/crowdstrike/: 0%
 
 https://www.reddit.com/r/redteamsec/ 0%
+
+
 
