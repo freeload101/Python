@@ -1,3 +1,8 @@
+ZeroFox CSV REPORT convert:
+
+`cat 2mos.csv | awk '{gsub("\r","\n"); print}' |sed 's/.*hxxp/hxxp/g'| grep -E "(hxxp)"  | sed 's/,.*//g' |sort -u| grep -vEa "(twitter|linkedin)" | sed -r -e 's/hxx([p|ps])/htt\1/g' > URLS.txt`
+
+
 Usage:
 
 1) create URLS.txt file 
