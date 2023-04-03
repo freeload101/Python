@@ -95,7 +95,7 @@ blacklist = [
 # to fix bugs in the blacklist or issues with specific providers
 whitelist = [
     'nationalgeographic.com',
-#    'tiqcdn.com',
+    'plex.tv',
 #    'pinterest.com',
 #    'pinimg.com',
 #    'linkedin.com',
