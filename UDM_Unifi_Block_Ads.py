@@ -96,7 +96,7 @@ blacklist = [
 whitelist = [
     'nationalgeographic.com',
     'plex.tv',
-#    'pinterest.com',
+    'rentry.org',
 #    'pinimg.com',
 #    'linkedin.com',
 #    'snapchat.com',
