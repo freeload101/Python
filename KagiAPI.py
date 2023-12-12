@@ -1,4 +1,12 @@
-import requests, json, sys, os, logging, yaml
+import json
+import logging
+import os
+import requests
+import sys
+import yaml
+
+# cd "C:\backup\NEWELL\PROJECTS\MS_ConfirmSafe"
+# python.exe -m PyInstaller -F --add-data "C:\ROBERT\_JAMNEW\python\tools\python312.dll";. "C:\backup\NEWELL\PROJECTS\MS_ConfirmSafe\KagiAPI.py"
 
 ############################################################ FUNCTIONS
 class Phantom:
