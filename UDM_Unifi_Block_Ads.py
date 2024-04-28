@@ -72,7 +72,7 @@ blacklist = [
     '0.0.0.0 advertising.com',
     '0.0.0.0 lgtvsdp.com',
     '0.0.0.0 roku.com',
-]   '0.0.0.0 yelp.ch',
+    '0.0.0.0 yelp.ch',
     '0.0.0.0 returnpath.net',
     '0.0.0.0 bidswitch.net',
     '0.0.0.0 nexage.com',
