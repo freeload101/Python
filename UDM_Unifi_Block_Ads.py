@@ -100,6 +100,7 @@ whitelist = [
 #    'cbsi.com',
     'safebrowsing.g.applimg.com',
     'safebrowsing.apple'
+    'login.aliexpress.com'
 ]
 
 def is_excluded(host):
