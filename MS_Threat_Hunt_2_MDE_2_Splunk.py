@@ -125,9 +125,10 @@ for input_file, output_file in file_pairs:
 ############################################################################################## push each file to Splunk use spath ...
 
 
-url = "https://{SPLUNK_HEC_DOMAIN}/services/collector/event"
+url = f'https://{SPLUNK_HEC_DOMAIN}/services/collector/event'
+
 headers = {
-    'Authorization': 'Splunk {SPLUNK_HEC}',
+    'Authorization': f'Splunk {SPLUNK_HEC}',
 }
 
 files = ['split1_parsed.json', 'split2_parsed.json', 'split3_parsed.json', 'split4_parsed.json']
