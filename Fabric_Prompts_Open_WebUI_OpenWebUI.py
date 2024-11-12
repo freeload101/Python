@@ -16,8 +16,8 @@ def download_and_extract_to_json(url, target_filename, target_folder):
                 os.makedirs(os.path.dirname(extracted_path), exist_ok=True)
                 with z.open(file_info) as f:
                     md_content = f.read().decode('utf-8')
-                json_content = json.dumps({'content': md_content})
-                json_array.append(create_json_object(json_content, extracted_path.split("/")[-2].replace("_", "-")))
+                #json_content = json.dumps({'content': md_content})
+                json_array.append(create_json_object(md_content, extracted_path.split("/")[-2].replace("_", "-")))
     save_json_array(json_array)
 
 def create_json_object(content, path):
