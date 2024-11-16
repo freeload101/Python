@@ -11,13 +11,13 @@ TODO:
 # https://www.zaproxy.org/docs/api/#using-ajax-spider
 
 # To start the Spider scan (Response: Scan ID). Modify the API Key and URL to suite the target
-$ curl "http://localhost:8080/JSON/spider/action/scan/?apikey=46ojgm6978e7656thq574obdts&url=https://public-firing-range.appspot.com&contextName=&recurse="
+$ curl "http://localhost:8080/JSON/spider/action/scan/?apikey=xxxxxxxxxxxx&url=https://public-firing-range.appspot.com&contextName=&recurse="
 
 # To view the scan status/ percentage of work done
 $ curl "http://localhost:8080/JSON/spider/view/status/?apikey=<ZAP_API_KEY>&scanId=<SCAN_ID>"
 
 # To view the scan results
-$ curl "http://localhost:8080/JSON/spider/view/results/?apikey=46ojgm6978e7656thq574obdts&scanId=<SCAN_ID>"
+$ curl "http://localhost:8080/JSON/spider/view/results/?apikey=xxxxxxxxxxxx&scanId=<SCAN_ID>"
 
 # To stop the scanning
 $ curl "http://localhost:8080/JSON/spider/action/stop/?apikey=<ZAP_API_KEY>&scanId=<SCAN_ID>"
@@ -62,7 +62,7 @@ browser='phantomjs'
 
 
 # The URL of the application to be tested
-target = 'https://drive.google.com/drive/folders/1-TAUZrDGSZzNPxKQ7EjCM-b_m2EywbCG'
+target = 'https://drive.google.com/drive/folders/1-xxxxxxxxxxxxxxxx'
 
 #target = 'https://random-ize.com/random-website/'
 #target = 'https://public-firing-range.appspot.com'
