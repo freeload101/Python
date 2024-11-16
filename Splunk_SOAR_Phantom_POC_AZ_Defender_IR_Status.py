@@ -115,7 +115,7 @@ def debug_1(action=None, success=None, container=None, results=None, handle=None
 
     with open("config.yml", "w") as file:
         lines = [
-            '{\r        "app_id":"66f2dfec-e2a2-4e1a-ab21-432e30496f98",\r        "app_id_secret":"gKK8Q~LxJbyYANK1wdAEz1Ou85nJG6oimyv8yc_a",\r        "tenant_id":"666310ae-0b9d-4182-a5f8-8c8d8d802154"\r}']
+            '{\r        "app_id":"66f2dfec-e2a2-4e1a-ab21-432e30496f98",\r        "app_id_secret":"REDACTED",\r        "tenant_id":"REDACTED\r}']
         file.writelines(lines)
         file.close()
 
