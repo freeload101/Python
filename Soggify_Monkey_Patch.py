@@ -2,7 +2,11 @@
 # Soggify Fixer :*(
 # file format must be !
 # {artist_name} - {track_num} - {album_name} - {track_name}.ogg
+# {artist_name}/{album_name}{multi_disc_path}/{artist_name} - {track_num} - {album_name} - {track_name}.ogg 
 # This script fixes Soggify meta data based on non standard Soggify settings!
+# find . -not -path "*/.*" -type d -exec python Soggify_Monkey_Patch.py '{}' \;
+
+
 import os
 import re
 from pathlib import Path
