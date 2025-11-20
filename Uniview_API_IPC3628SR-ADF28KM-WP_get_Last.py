@@ -1,58 +1,51 @@
 import requests
 from requests.auth import HTTPDigestAuth
-from datetime import datetime
-import subprocess
+from datetime import datetime, timedelta
 import urllib3
-from urllib.parse import quote
 import os
 import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.base import MIMEBase
 from email.mime.text import MIMEText
 from email import encoders
+import subprocess
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-# this will grab the last video and email it ... like a BOSS I set it to cron every 2 min ... you will miss anthing in between and leep year or who knows I hate working with time ! 
+
 # Camera settings
 IP = "192.168.1.147"
 USERNAME = "admin"
-PASSWORD = "___YOURCCTVPASSWORDHERE__"
-PASSWORD_ENCODED = quote(PASSWORD, safe='')
+PASSWORD = "__REDACTED__"
 
 # Email settings
-GMAIL_USER = "rmccurdywork@gmail.com"
-GMAIL_APP_PASSWORD = "__YOURSMTPPASSWORD__"
-RECIPIENT = "kmlindsey@gmail.com"
+GMAIL_USER = "__REDACTED__@gmail.com"
+GMAIL_APP_PASSWORD = "__REDACTED__"
+RECIPIENT = "__REDACTED__@gmail.com"
 SMTP_SERVER = "smtp.gmail.com"
 SMTP_PORT = 587
 
-# Flag file to track last sent video
-FLAG_FILE = "last_sent_video.txt"
+FLAG_FILE = "sent_events.txt"
 
-def get_last_sent_video():
-    """Read the last sent video ID from flag file"""
+def get_sent_events():
     if os.path.exists(FLAG_FILE):
         with open(FLAG_FILE, 'r') as f:
-            return f.read().strip()
-    return None
+            return set(line.strip() for line in f if line.strip())
+    return set()
 
-def set_last_sent_video(record_id):
-    """Write the video ID to flag file"""
-    with open(FLAG_FILE, 'w') as f:
-        f.write(str(record_id))
+def add_sent_event(event_id):
+    with open(FLAG_FILE, 'a') as f:
+        f.write(f"{event_id}\n")
 
-def send_email_with_attachment(filepath, record_id, start_dt):
-    """Send email with video attachment via Gmail"""
+def send_email_with_attachment(filepath, event_time):
     try:
         msg = MIMEMultipart()
         msg['From'] = GMAIL_USER
         msg['To'] = RECIPIENT
-        msg['Subject'] = f"Security Recording - {start_dt.strftime('%Y-%m-%d %H:%M:%S')}"
+        msg['Subject'] = f"Motion Detected - {event_time.strftime('%Y-%m-%d %I:%M:%S %p')}"
 
-        body = f"Attached is the latest security camera recording.\n\nRecording ID: {record_id}\nTime: {start_dt.strftime('%Y-%m-%d %H:%M:%S')}"
+        body = f"Motion detected at: {event_time.strftime('%Y-%m-%d %I:%M:%S %p')}"
         msg.attach(MIMEText(body, 'plain'))
 
-        # Attach file
         with open(filepath, 'rb') as attachment:
             part = MIMEBase('application', 'octet-stream')
             part.set_payload(attachment.read())
@@ -61,35 +54,119 @@ def send_email_with_attachment(filepath, record_id, start_dt):
         part.add_header('Content-Disposition', f'attachment; filename={os.path.basename(filepath)}')
         msg.attach(part)
 
-        # Send email
         server = smtplib.SMTP(SMTP_SERVER, SMTP_PORT)
         server.starttls()
         server.login(GMAIL_USER, GMAIL_APP_PASSWORD)
         server.send_message(msg)
         server.quit()
 
-        print(f"✓ Email sent to {RECIPIENT}")
+        print(f"✓ Email sent")
         return True
 
     except Exception as e:
         print(f"✗ Email failed: {e}")
         return False
 
-def download_and_send_latest_recording(output_dir="recordings"):
-    """Download, compress, and email the latest recording if not already sent"""
+def download_recording(record_id, begin_time, end_time, output_dir="recordings"):
+    """Download and compress recording to 420p for Gmail"""
 
     os.makedirs(output_dir, exist_ok=True)
 
-    # Get recordings - fetch more to ensure we get the latest
+    event_time = datetime.fromtimestamp(begin_time)
+    duration = end_time - begin_time
+
+    print(f"\nDownloading RecordID {record_id}")
+    print(f"  Time: {event_time.strftime('%Y-%m-%d %I:%M:%S %p')}")
+    print(f"  Duration: {duration}s")
+
+    filename_ts = f"cctvfn.localdomain_{begin_time}_{end_time}.ts"
+    filename_compressed = f"motion_{record_id}_{event_time.strftime('%Y%m%d_%H%M%S')}_compressed.mp4"
+    filepath_ts = os.path.join(output_dir, filename_ts)
+    filepath_compressed = os.path.join(output_dir, filename_compressed)
+
+    url = f"http://{IP}/LAPI/V1.0/Channel/0/Media/RecordDownload/{filename_ts}"
+
+    try:
+        # Download original file
+        response = requests.get(
+            url,
+            auth=HTTPDigestAuth(USERNAME, PASSWORD),
+            stream=True,
+            timeout=300,
+            verify=False
+        )
+
+        if response.status_code == 200:
+            with open(filepath_ts, 'wb') as f:
+                for chunk in response.iter_content(chunk_size=8192):
+                    if chunk:
+                        f.write(chunk)
+
+            if os.path.exists(filepath_ts) and os.path.getsize(filepath_ts) > 10000:
+                original_size = os.path.getsize(filepath_ts) / (1024 * 1024)
+                print(f"✓ Downloaded: {original_size:.2f} MB")
+
+                # Compress to 420p resolution
+                print(f"  Compressing to 420p...")
+                cmd = [
+                    'ffmpeg',
+                    '-i', filepath_ts,
+                    '-vf', 'scale=-2:420',
+                    '-c:v', 'libx264',
+                    '-preset', 'fast',
+                    '-crf', '28',
+                    '-c:a', 'aac',
+                    '-b:a', '64k',
+                    '-movflags', '+faststart',
+                    '-y',
+                    filepath_compressed
+                ]
+
+                result = subprocess.run(
+                    cmd,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    text=True,
+                    timeout=duration + 120
+                )
+
+                if result.returncode == 0 and os.path.exists(filepath_compressed):
+                    compressed_size = os.path.getsize(filepath_compressed) / (1024 * 1024)
+                    print(f"✓ Compressed: {compressed_size:.2f} MB (saved {original_size - compressed_size:.2f} MB)")
+
+                    # Delete original file
+                    os.remove(filepath_ts)
+                    print(f"✓ Deleted original file")
+
+                    return filepath_compressed
+                else:
+                    print(f"✗ Compression failed, using original")
+                    return filepath_ts
+            else:
+                print(f"✗ Download failed or file too small")
+                if os.path.exists(filepath_ts):
+                    os.remove(filepath_ts)
+                return None
+        else:
+            print(f"✗ Download failed: {response.status_code}")
+            return None
+
+    except Exception as e:
+        print(f"✗ Error: {e}")
+        return None
+
+def process_recordings_24h():
+    """Process only new recordings from past 24 hours"""
+
     now = datetime.now()
-    begin_time = int(datetime(now.year, now.month, now.day, 0, 0, 0).timestamp())
+    begin_time = int((now - timedelta(hours=24)).timestamp())
     end_time = int(now.timestamp())
 
     url = f"http://{IP}/LAPI/V1.0/Channel/0/Media/Video/Streams/0/Records"
     params = {
         'Begin': begin_time,
         'End': end_time,
-        'Limit': 100,  # Fetch more recordings
+        'Limit': 100,
         'Offset': 0,
         'Types': 0
     }
@@ -104,90 +181,46 @@ def download_and_send_latest_recording(output_dir="recordings"):
 
     if response.status_code != 200:
         print(f"Failed to get recordings: {response.status_code}")
-        return None
+        return
 
     data = response.json()
     recordings = data['Response']['Data'].get('RecordInfos', [])
 
     if not recordings:
-        print("No recordings found")
-        return None
+        print("No recordings found in past 24 hours")
+        return
 
-    # Sort by Begin time descending to get the most recent
-    recordings.sort(key=lambda x: x['Begin'], reverse=True)
+    print(f"Found {len(recordings)} recordings in past 24 hours")
 
-    # Get latest recording
-    recording = recordings[0]
-    record_id = recording['RecordID']
+    # Get already sent events
+    sent_events = get_sent_events()
+    recordings.sort(key=lambda x: x['Begin'])
 
-    # Check if already sent
-    last_sent = get_last_sent_video()
-    if last_sent == str(record_id):
-        print(f"Recording {record_id} already sent. Skipping.")
-        return None
+    # Filter out already sent recordings
+    new_recordings = [r for r in recordings if str(r['RecordID']) not in sent_events]
 
-    begin_time = recording['Begin']
-    end_time = recording['End']
-    duration = end_time - begin_time
+    if not new_recordings:
+        print("No new recordings to process")
+        return
 
-    rtsp_url = f"rtsp://{USERNAME}:{PASSWORD_ENCODED}@{IP}:554/media/video2?starttime={begin_time}"
+    print(f"Processing {len(new_recordings)} new recording(s)")
 
-    start_dt = datetime.fromtimestamp(begin_time)
-    filename = f"recording_{record_id}_{start_dt.strftime('%Y%m%d_%H%M%S')}_compressed.mp4"
-    filepath = os.path.join(output_dir, filename)
+    new_count = 0
+    for recording in new_recordings:
+        record_id = str(recording['RecordID'])
+        begin_ts = recording['Begin']
+        end_ts = recording['End']
+        event_time = datetime.fromtimestamp(begin_ts)
 
-    print(f"Downloading latest recording (ID: {record_id})")
-    print(f"  Time: {start_dt.strftime('%Y-%m-%d %H:%M:%S')}")
-    print(f"  Duration: {duration}s")
+        filepath = download_recording(record_id, begin_ts, end_ts)
 
-    # FFmpeg command
-    cmd = [
-        'ffmpeg',
-        '-rtsp_transport', 'tcp',
-        '-i', rtsp_url,
-        '-t', str(duration),
-        '-c:v', 'libx264',
-        '-preset', 'fast',
-        '-crf', '28',
-        '-vf', 'scale=854:480',
-        '-c:a', 'aac',
-        '-b:a', '64k',
-        '-movflags', '+faststart',
-        '-y',
-        filepath
-    ]
+        if filepath and send_email_with_attachment(filepath, event_time):
+            add_sent_event(record_id)
+            new_count += 1
 
-    try:
-        result = subprocess.run(
-            cmd,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True,
-            timeout=duration + 120
-        )
+    print(f"\n{'='*50}")
+    print(f"Successfully processed {new_count} new recording(s)")
 
-        if result.returncode == 0 and os.path.exists(filepath):
-            file_size = os.path.getsize(filepath) / (1024 * 1024)
-            print(f"✓ Downloaded: {filepath} ({file_size:.2f} MB)")
-
-            # Send email
-            if send_email_with_attachment(filepath, record_id, start_dt):
-                set_last_sent_video(record_id)
-                print(f"✓ Flagged recording {record_id} as sent")
-
-            return filepath
-        else:
-            print(f"✗ FFmpeg failed:")
-            print(result.stderr[-1000:])
-            return None
-
-    except subprocess.TimeoutExpired:
-        print(f"✗ Timeout after {duration + 120}s")
-        return None
-    except Exception as e:
-        print(f"✗ Error: {e}")
-        return None
-
-# Run the download and send
-download_and_send_latest_recording()
+# Run
+process_recordings_24h()
 
