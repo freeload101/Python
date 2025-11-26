@@ -65,7 +65,7 @@ def send_post_request(file_content):
     return response
 
 def process_ebook_chunks(directory="."):
-    """Process all ebook_chunk files when GPU usage is under 50%."""
+    """Process all ebook_chunk files when GPU usage is under 20%."""
     chunk_files = sorted(Path(directory).glob("ebook_chunk*"))
 
     if not chunk_files:
@@ -73,7 +73,7 @@ def process_ebook_chunks(directory="."):
         return
 
     for chunk_file in chunk_files:
-        # Wait until GPU usage is under 50%
+        # Wait until GPU usage is under 20%
         while True:
             print("waiting 20 seconds for GPU check .....")
             time.sleep(20)
@@ -83,7 +83,7 @@ def process_ebook_chunks(directory="."):
             if gpu_usage < 20:
                 break
             else:
-                print("GPU usage above 50%, waiting 60 seconds...")
+                print("GPU usage above 20%, waiting 60 seconds...")
                 time.sleep(60)
 
         # Read file content
